@@ -1,0 +1,14 @@
+{
+  "id": "mnd.examples.shop",
+  "name": "Лавка",
+  "version": "1.0.0",
+  "sdk": "1",
+  "entry": "main.lua",
+  "description": "Полноэкранный интерфейс лавки: монеты, остаток на складе между сессиями и покупки в сумку.",
+  "author": "Meander",
+  "icon": "payments",
+  "tags": ["экономика", "магазин", "screen"],
+  "permissions": ["ui", "quest", "storage", "audio"],
+  "hooks": ["quest_start", "node_enter"],
+  "slots": [{ "id": "chip", "area": "drawer", "priority": 10 }]
+}

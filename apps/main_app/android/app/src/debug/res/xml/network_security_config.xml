@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Отладочный билд: здесь пользовательские корни нужны — это Charles и
+         mitmproxy на устройстве, без них локальный разбор запросов приложения
+         невозможен. В публикуемом билде (src/main) этот якорь убран. -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

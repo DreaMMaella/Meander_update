@@ -1,0 +1,17 @@
+{
+  "id": "mnd.examples.journal",
+  "name": "Дорожный журнал",
+  "version": "1.0.0",
+  "sdk": "1",
+  "entry": "main.lua",
+  "description": "Записывает посещённые сцены и даёт вернуться в любую из них одной кнопкой.",
+  "author": "Meander",
+  "icon": "book",
+  "tags": ["example", "navigation", "ui"],
+  "permissions": ["ui", "quest", "storage", "navigation"],
+  "hooks": ["quest_start", "node_enter"],
+  "slots": [
+    { "id": "journalButton", "area": "drawer", "priority": 10 },
+    { "id": "journalPage", "area": "overlay", "priority": 30 }
+  ]
+}

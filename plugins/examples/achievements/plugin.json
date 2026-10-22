@@ -1,0 +1,17 @@
+{
+  "id": "mnd.examples.achievements",
+  "name": "Достижения",
+  "version": "1.0.0",
+  "sdk": "1",
+  "entry": "main.lua",
+  "description": "Считает прогресс квеста, выдаёт трофеи тостом и держит витрину наград между запусками.",
+  "author": "Meander",
+  "icon": "star",
+  "tags": ["example", "progression", "hud"],
+  "permissions": ["ui", "storage"],
+  "hooks": ["quest_start", "quest_end", "node_enter", "item_press"],
+  "slots": [
+    { "id": "trophies", "area": "hud", "priority": 30 },
+    { "id": "trophyCase", "area": "overlay", "priority": 40 }
+  ]
+}

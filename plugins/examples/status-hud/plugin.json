@@ -1,0 +1,17 @@
+{
+  "id": "mnd.examples.statushud",
+  "name": "Панель статуса",
+  "version": "1.0.0",
+  "sdk": "1",
+  "entry": "main.lua",
+  "description": "HUD со шкалами HP и энергии, карточка персонажа и кнопка «Отдохнуть».",
+  "author": "Meander",
+  "icon": "heart",
+  "tags": ["example", "hud", "ui"],
+  "permissions": ["ui", "quest"],
+  "hooks": ["quest_start", "node_enter", "item_press"],
+  "slots": [
+    { "id": "status", "area": "hud", "priority": 10 },
+    { "id": "details", "area": "overlay", "priority": 20 }
+  ]
+}

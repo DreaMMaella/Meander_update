@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Цвет фона нативного окна. Сверен с ролью surface темы «Нуар» —
+         дефолтной для приложения (ThemeRegistry.defaultPresetId). Android
+         рисует это окно до первого кадра Flutter и держит позади него всё
+         время работы: любой просвет под поверхностью Flutter — это белые
+         пиксели на тёмном экране. -->
+    <color name="mnd_window_background">#FF151312</color>
+</resources>

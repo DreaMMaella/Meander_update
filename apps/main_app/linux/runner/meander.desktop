@@ -1,0 +1,11 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Meander
+Comment=Meander Quest Editor and Player
+Exec=canvas_app %f
+Icon=meander
+Terminal=false
+Categories=Game;Utility;
+MimeType=application/x-meander;application/vnd.meander.quest;
+StartupNotify=true

@@ -1,0 +1,91 @@
+{
+  "id": "mnd.examples.bag",
+  "name": "Инвентарь",
+  "version": "1.0.0",
+  "sdk": "1",
+  "entry": "main.lua",
+  "description": "Целая подсистема из плагина: предметы в мире подбираются в сетку инвентаря, а сам инвентарь лежит в переменной квеста — его видно в условиях, в сохранениях и в скриптах.",
+  "author": "Meander",
+  "icon": "bag",
+  "tags": ["example", "content-type", "inventory", "адаптивный-ui"],
+  "permissions": ["ui", "quest", "storage", "audio", "events"],
+  "hooks": ["quest_start", "node_enter", "item_reveal", "item_press"],
+  "contentTypes": [
+    {
+      "id": "inventory",
+      "name": "Инвентарь",
+      "description": "Сетка предметов на сцене. Ячейки читаются прямо из переменной квеста `bag_items`, число колонок подстраивается под ширину экрана.",
+      "icon": "bag",
+      "fields": [
+        { "key": "title", "label": "Заголовок", "type": "text", "default": "Рюкзак" },
+        {
+          "key": "capacity",
+          "label": "Мест в рюкзаке",
+          "type": "number",
+          "default": 8,
+          "min": 1,
+          "max": 24,
+          "hint": "пишется в переменную `bag_cap` — скрипт квеста может менять её сам"
+        },
+        {
+          "key": "cellWidth",
+          "label": "Минимальная ширина ячейки, px",
+          "type": "number",
+          "default": 104,
+          "min": 64,
+          "max": 200,
+          "hint": "меньше ячейка — больше колонок на широком экране"
+        },
+        {
+          "key": "skin",
+          "label": "Обложка",
+          "type": "select",
+          "default": "тёмная",
+          "options": ["тёмная", "золотая", "лесная"]
+        },
+        {
+          "key": "showHud",
+          "label": "Счётчик предметов в углу экрана",
+          "type": "bool",
+          "default": true,
+          "hint": "по тапу открывает рюкзак на весь экран"
+        }
+      ]
+    },
+    {
+      "id": "pickup",
+      "name": "Предмет на земле",
+      "description": "Айтем сцены: тап кладёт предмет в инвентарь и заводит переменную `bag_has_<ключ>`, на которую квест вешает условие двери.",
+      "icon": "key",
+      "fields": [
+        { "key": "name", "label": "Название", "type": "text", "default": "Предмет" },
+        {
+          "key": "icon",
+          "label": "Иконка",
+          "type": "select",
+          "default": "key",
+          "options": [
+            "key", "coin", "heart", "star", "gear", "bag", "book", "clock",
+            "eye", "map", "person", "sound", "bulb", "fire", "drop", "flag",
+            "note", "lock", "check", "cross"
+          ]
+        },
+        {
+          "key": "itemKey",
+          "label": "Ключ для условий",
+          "type": "text",
+          "hint": "латиницей, например flashlight; пусто — ключ возьмётся из id айтема"
+        },
+        { "key": "count", "label": "Сколько штук", "type": "number", "default": 1, "min": 1, "max": 99 },
+        { "key": "picture", "label": "Картинка предмета", "type": "asset", "hint": "показывается в карточке предмета" },
+        { "key": "sound", "label": "Звук подбора", "type": "text", "hint": "имя аудио-ресурса квеста, например pickup; пусто — молча" },
+        { "key": "description", "label": "Описание", "type": "text" },
+        { "key": "vanish", "label": "Исчезает после подбора", "type": "bool", "default": true }
+      ]
+    }
+  ],
+  "slots": [
+    { "id": "hud", "area": "hud", "priority": 10 },
+    { "id": "inspect", "area": "overlay", "priority": 30 }
+  ]
+}

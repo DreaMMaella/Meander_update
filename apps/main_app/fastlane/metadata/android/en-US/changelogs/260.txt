@@ -1,0 +1,12 @@
+v2.8.15 (260)
+
+Fixes:
+• "Back" in the editor no longer dumped you out to the quest menu
+• photos attach to community posts again
+• removed the white artefact on the profile screen
+• quests no longer lose their fonts
+• duplicating or deleting a script block no longer touches the whole event
+• trimmed redundant items from the node settings
+• text settings moved into a submenu, freeing room for writing
+• the chosen typewriter effect no longer resets
+• iOS 27: no crash on launch (scene lifecycle implemented)

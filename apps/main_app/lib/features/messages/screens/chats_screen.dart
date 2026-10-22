@@ -1,0 +1,414 @@
+import 'package:canvas_app/core/utils/date_format.dart';
+import 'package:canvas_app/features/messages/models/dm_models.dart';
+import 'package:canvas_app/features/messages/providers/dm_provider.dart';
+import 'package:canvas_app/features/messages/screens/chat_screen.dart';
+import 'package:canvas_app/features/profile/cosmetics/cosmetic_model.dart';
+import 'package:canvas_app/features/profile/cosmetics/cosmetic_widgets.dart';
+import 'package:canvas_app/shared/dialogs/show_app_dialog.dart';
+import 'package:canvas_app/core/l10n/l10n.dart';
+import 'package:canvas_app/shared/widgets/adaptive_ui.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:shimmer/shimmer.dart';
+
+/// Вкладка «Чаты»: личные переписки и диалог с аккаунтом команды.
+class ChatsScreen extends ConsumerStatefulWidget {
+  const ChatsScreen({super.key});
+
+  @override
+  ConsumerState<ChatsScreen> createState() => _ChatsScreenState();
+}
+
+class _ChatsScreenState extends ConsumerState<ChatsScreen> {
+  String _viewerId = '';
+
+  @override
+  void initState() {
+    super.initState();
+    SharedPreferences.getInstance().then((prefs) {
+      if (mounted) setState(() => _viewerId = prefs.getString('user_id') ?? '');
+    });
+  }
+
+  Future<void> _open(DmThread thread) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => ChatScreen(peerId: thread.peer.id)),
+    );
+    if (!mounted) return;
+    // Окно чата отмечает переписку прочитанной на сервере — ленте надо
+    // обновиться, иначе счётчик переживёт тап по строке.
+    ref.read(dmThreadsProvider.notifier).load(silent: true);
+  }
+
+  Future<void> _confirmHide(DmThread thread) async {
+    final confirmed = await showAppDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(tr('Скрыть переписку?')),
+        content: Text(
+          tr('Она уйдёт из твоего списка. У собеседника переписка останется, а новое сообщение вернёт её обратно.'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(tr('Отмена')),
+          ),
+          FilledButton.tonal(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(tr('Скрыть')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await ref.read(dmThreadsProvider.notifier).hide(thread.threadId);
+    } catch (_) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(tr('Не удалось скрыть переписку'))),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final state = ref.watch(dmThreadsProvider);
+
+    return Scaffold(
+      backgroundColor: scheme.surface,
+      body: SafeArea(
+        bottom: false,
+        child: RefreshIndicator(
+          onRefresh: () =>
+              ref.read(dmThreadsProvider.notifier).load(silent: true),
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              SliverAppBar.large(
+                title: Text(tr('Чаты')),
+                pinned: true,
+                backgroundColor: scheme.surface,
+                surfaceTintColor: scheme.surfaceTint,
+              ),
+              SliverToBoxAdapter(
+                child: AdaptiveContent(
+                  maxWidth: 760,
+                  child: _buildBody(context, state),
+                ),
+              ),
+              const SliverToBoxAdapter(child: SizedBox(height: 40)),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBody(BuildContext context, DmThreadsState state) {
+    final scheme = Theme.of(context).colorScheme;
+
+    if (state.isLoading && state.threads.isEmpty) {
+      return Column(
+        children: [for (var i = 0; i < 5; i++) _shimmerRow(context)],
+      );
+    }
+
+    if (state.error != null && state.threads.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+        child: Column(
+          children: [
+            Icon(
+              Icons.error_outline_rounded,
+              size: 40,
+              color: scheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              tr('Не удалось загрузить переписки'),
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              state.error!,
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+            ),
+            const SizedBox(height: 16),
+            FilledButton.tonalIcon(
+              onPressed: () => ref.read(dmThreadsProvider.notifier).load(),
+              icon: const Icon(Icons.refresh_rounded),
+              label: Text(tr('Повторить')),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (state.threads.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(24, 40, 24, 24),
+        child: Column(
+          children: [
+            Icon(
+              Icons.forum_outlined,
+              size: 44,
+              color: scheme.onSurfaceVariant,
+            ),
+            const SizedBox(height: 14),
+            Text(tr('Пока пусто'), style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 6),
+            Text(
+              tr('Открой профиль человека и нажми «Написать» — переписка появится здесь. Новости команды приходят в чат Meander.'),
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.bodyMedium?.copyWith(color: scheme.onSurfaceVariant),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        for (final thread in state.threads)
+          _ThreadTile(
+            thread: thread,
+            viewerId: _viewerId,
+            onOpen: () => _open(thread),
+            onMute: () => ref
+                .read(dmThreadsProvider.notifier)
+                .mute(thread.threadId, !thread.muted),
+            // Системный чат не прячут: у новости всё равно есть колокольчик, а
+            // «скрыть» оставило бы человека без окна, которое нечем вернуть.
+            onHide: thread.peer.isSystem ? null : () => _confirmHide(thread),
+          ),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+
+  Widget _shimmerRow(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Shimmer.fromColors(
+      baseColor: scheme.surfaceContainerHighest,
+      highlightColor: scheme.surfaceContainerHigh,
+      child: Container(
+        height: 76,
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+        decoration: BoxDecoration(
+          color: scheme.surfaceContainerHighest,
+          borderRadius: BorderRadius.circular(20),
+        ),
+      ),
+    );
+  }
+}
+
+class _ThreadTile extends StatelessWidget {
+  const _ThreadTile({
+    required this.thread,
+    required this.viewerId,
+    required this.onOpen,
+    required this.onMute,
+    this.onHide,
+  });
+
+  final DmThread thread;
+  final String viewerId;
+  final VoidCallback onOpen;
+  final VoidCallback onMute;
+  final VoidCallback? onHide;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final textTheme = Theme.of(context).textTheme;
+    final peer = thread.peer;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+      child: Material(
+        color: thread.unread > 0
+            ? scheme.surfaceContainerHigh
+            : scheme.surfaceContainerLow,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+            color: scheme.outlineVariant.withValues(alpha: 0.5),
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(20),
+          onTap: onOpen,
+          onLongPress: _menu(context),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                CosmeticAvatar(
+                  frame: cosmeticById(peer.equipped.avatarFrame),
+                  avatarUrl: peer.avatarUrl,
+                  radius: 26,
+                  placeholderColor: scheme.surfaceContainerHighest,
+                  fallback: peer.isSystem
+                      ? Icon(
+                          Icons.campaign_outlined,
+                          color: scheme.onPrimaryContainer,
+                        )
+                      : Text(
+                          _initial(peer.name),
+                          style: textTheme.titleMedium?.copyWith(
+                            color: scheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: CosmeticNameText(
+                              name: peer.isSystem ? 'Meander' : peer.name,
+                              def: cosmeticById(peer.equipped.nameStyle),
+                              style: textTheme.titleSmall?.copyWith(
+                                fontWeight: thread.unread > 0
+                                    ? FontWeight.w800
+                                    : FontWeight.w700,
+                                color: scheme.onSurface,
+                              ),
+                            ),
+                          ),
+                          if (peer.isSystem) ...[
+                            const SizedBox(width: 4),
+                            Icon(
+                              Icons.verified_rounded,
+                              size: 14,
+                              color: scheme.primary,
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        thread.previewFor(viewerId),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: textTheme.bodySmall?.copyWith(
+                          color: thread.unread > 0
+                              ? scheme.onSurface
+                              : scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      thread.lastMessageAt == null
+                          ? ''
+                          : formatRelativeTime(thread.lastMessageAt!),
+                      style: textTheme.labelSmall?.copyWith(
+                        color: scheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        if (thread.muted)
+                          Icon(
+                            Icons.notifications_off_outlined,
+                            size: 15,
+                            color: scheme.onSurfaceVariant,
+                          ),
+                        if (thread.unread > 0) ...[
+                          if (thread.muted) const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 7,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: scheme.primary,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              thread.unread > 99 ? '99+' : '${thread.unread}',
+                              style: textTheme.labelSmall?.copyWith(
+                                color: scheme.onPrimary,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+                IconButton(
+                  onPressed: _menu(context),
+                  icon: const Icon(Icons.more_horiz_rounded),
+                  color: scheme.onSurfaceVariant,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  VoidCallback _menu(BuildContext context) => () async {
+    await showAdaptiveSheet<void>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Icon(
+                thread.muted
+                    ? Icons.notifications_active_outlined
+                    : Icons.notifications_off_outlined,
+              ),
+              title: Text(thread.muted ? tr('Включить звук') : tr('Заглушить')),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                onMute();
+              },
+            ),
+            if (onHide != null)
+              ListTile(
+                leading: const Icon(Icons.delete_outline_rounded),
+                title: Text(tr('Скрыть переписку')),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  onHide!();
+                },
+              ),
+          ],
+        ),
+      ),
+    );
+  };
+
+  static String _initial(String name) {
+    final trimmed = name.trim();
+    return trimmed.isEmpty ? '?' : trimmed[0].toUpperCase();
+  }
+}

@@ -1,0 +1,35 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:canvas_app/features/resources/services/quest_storage.dart';
+import 'package:canvas_app/features/resources/services/resource_service.dart';
+
+/// Конвенции путей и metadata.json конкретного квеста.
+final questStorageProvider = Provider.family<QuestStorage, String>(
+  (ref, questId) => QuestStorage(questId: questId),
+);
+
+/// Единая точка работы с ресурсами квеста (файлы, metadata.json, скрипты,
+/// имена, папки). Экраны читают/пишут ресурсы только через этот сервис.
+final resourceServiceProvider = Provider.family<ResourceService, String>(
+  (ref, questId) =>
+      ResourceService(storage: ref.watch(questStorageProvider(questId))),
+);
+
+/// Имена ресурсов квеста: `имя файла → имя из metadata.json`. Экранам нужен
+/// человек, а не `1790024448511_<uuid>.png`: по такому хвосту два соседних
+/// кадра не отличить.
+///
+/// Потребители берут `.valueOrNull ?? const {}` — подпись не стоит сцены на
+/// spinner: пока metadata не прочитана, показываем имя файла.
+final questResourceNamesProvider =
+    FutureProvider.family<Map<String, String>, String>((ref, questId) async {
+      final svc = ref.watch(resourceServiceProvider(questId));
+      try {
+        await svc.loadNameCache();
+      } catch (_) {
+        // Хранилище недоступно (пустой квест, тест без моста) — не ошибка
+        // экрана: подписываем именами файлов.
+        return const {};
+      }
+      return Map.unmodifiable(svc.nameCache);
+    });

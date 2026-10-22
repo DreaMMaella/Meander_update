@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- Публикуемый билд. Пользовательским сертификатам доверять нельзя:
+         любое приложение с правом установить CA получает свой корень, и весь
+         трафик Meander у человека начинает расшифровываться посередине.
+         Снимать трафик для отладки можно в debug и profile — там этот якорь
+         остался. -->
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

@@ -1,0 +1,23 @@
+Meander is a free engine for text quests and interactive stories. You can play
+them, and you can write your own without knowing how to program.
+
+For players:
+• branching scenes with variables, inventory and tables;
+• images, sound and video inside a scene, text animation, background blur;
+• a community catalogue with discussions and reviews;
+• offline mode: a quest is a file on your device and needs no network.
+
+For authors:
+• a node graph, so the shape of the story is visible;
+• a layered canvas for scene layout;
+• visual script blocks instead of code, formulas in plain fields;
+• a resource library, HTML and PDF export;
+• publishing to the catalogue, view statistics and reviews.
+
+The editor, the player and the quest library run locally with no account and
+no network. An account is only needed for cloud sync, publishing, forums and
+direct messages; those are served by meander.sbs, whose backend lives in this
+repository (crates/mnd-server), so you can host your own.
+
+Source: https://github.com/IILLUMINATION/meander-public
+License AGPL-3.0-or-later — forks and derivative builds must stay open.

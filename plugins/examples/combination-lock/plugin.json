@@ -1,0 +1,56 @@
+{
+  "id": "mnd.examples.lock",
+  "name": "Кодовый замок",
+  "version": "1.1.0",
+  "sdk": "1",
+  "entry": "main.lua",
+  "description": "Новый тип контента: кодовый замок с клавиатурой прямо на сцене, вводом в переменную квеста и переходом по нодам.",
+  "author": "Meander",
+  "icon": "key",
+  "tags": ["example", "content-type", "puzzle"],
+  "permissions": ["ui", "quest", "storage", "navigation"],
+  "hooks": ["item_reveal", "item_press"],
+  "contentTypes": [
+    {
+      "id": "combinationLock",
+      "name": "Кодовый замок",
+      "description": "Игрок набирает код на экранной клавиатуре или в поле ввода. Совпал — квест уходит на указанную ноду.",
+      "icon": "lock",
+      "fields": [
+        { "key": "code", "label": "Код", "type": "text", "default": "1337", "hint": "Например 1337" },
+        { "key": "title", "label": "Надпись на замке", "type": "text", "default": "Замок" },
+        { "key": "hint", "label": "Подсказка", "type": "text" },
+        { "key": "targetNode", "label": "Куда идти, когда код верный", "type": "text" },
+        {
+          "key": "attempts",
+          "label": "Попыток",
+          "type": "number",
+          "default": 3,
+          "min": 1,
+          "max": 9,
+          "hint": "после этого замок заклинивает и код сбрасывается"
+        },
+        {
+          "key": "mode",
+          "label": "Режим",
+          "type": "select",
+          "default": "простой",
+          "options": ["простой", "сложный", "с клавиатуры"],
+          "hint": "сложный — цифры не видны; с клавиатуры — ввод обычным полем"
+        },
+        {
+          "key": "showProgress",
+          "label": "Показывать счётчик попыток",
+          "type": "bool",
+          "default": true
+        },
+        {
+          "key": "picture",
+          "label": "Картинка замка",
+          "type": "asset",
+          "hint": "image из ресурсов квеста"
+        }
+      ]
+    }
+  ]
+}
