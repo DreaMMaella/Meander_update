@@ -1,0 +1,116 @@
+# Compiled and build artifacts
+*.pyc
+__pycache__/
+*.o
+*.obj
+*.class
+*.exe
+*.dll
+*.so
+*.a
+*.out
+dist/
+build/
+target/
+
+# Dependencies
+.venv/
+venv/
+node_modules/
+.mypy_cache/
+.pytest_cache/
+.gradle/
+.julia/
+zig*/
+julia-*/
+
+# Logs and temp files
+*.log
+*.tmp
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+*.env.*
+
+# Шаблоны OAuth-конфигурации лежат в репозитории; реальные значения — нет.
+!apps/main_app/.env.example
+!backend/.env.example
+apps/main_app/ios/Flutter/OAuth.xcconfig
+!apps/main_app/ios/Flutter/OAuth.xcconfig.example
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# Compressed files
+*.zip
+*.gz
+*.tar
+*.tgz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
+# Flutter/Dart: локальные артефакты инструментария.
+# Их отсутствие в списке и привело к тому, что `git add apps/main_app`
+# подтянул .dart_tool и google-services.json в индекс.
+.dart_tool/
+
+# Melos: локальные state-файлы воркспейса, генерируются `melos bootstrap`.
+# В индекс их класть нельзя — они содержат абсолютные пути этого checkout.
+**/pubspec_overrides.yaml
+.melos/
+melos_*.iml
+
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub/
+.packages
+app.*.symbols
+app.*.map.json
+
+# Android: ключ подписи и конфиги Firebase — секреты, в репозиторий не входят.
+# Если такой файл действительно нужен в коммите — `git add -f <путь>`.
+*.jks
+*.keystore
+google-services.json
+GoogleService-Info.plist
+
+# Исключение из правила: Firebase-конфиги клиента — не секрет (публичный
+# API-ключ, app id и project id, которые всё равно лежат в собранном
+# приложении). Без них не собирается iOS-таргет и рвётся CI.
+!apps/main_app/ios/Runner/GoogleService-Info.plist
+
+# Cargo-таргеты, зашитые symlink-ом (паттерн `target/` symlink не ловит).
+crates/*/target
+
+# Веб-плеер: .wasm и JS-шейпинг — выход wasm-pack, пересобирается, в индекс не идёт.
+apps/web_player/web/pkg/

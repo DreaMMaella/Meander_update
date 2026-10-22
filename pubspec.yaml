@@ -1,0 +1,29 @@
+# Корень melos-workspace. Pub требует этот файл рядом с melos.yaml: начиная с
+# melos 3.0.0 глобальный `melos` отказывается работать, если рядом с melos.yaml
+# нет pubspec.yaml с самим melos в dev_dependencies («Found a melos.yaml file …
+# but no local installation of Melos»), а melos 7–8 вообще перестали читать
+# melos.yaml. Без этого файла `melos bootstrap` падает в первом же шаге
+# инструкции из README — ровно тем же сообщением, которым он месяц падал в CI
+# (`CI Flutter/Dart`, шаг Bootstrap workspace): «Your current directory does not
+# appear to be within a Melos workspace» (проверено на чистом дереве и под 8.9.0,
+# и под 6.3.3).
+#
+# Этот файл заодно задаёт масть melos, которая реально запускается: глобальный
+# CLI отдаёт выполнение локальному, поэтому `melos --version` внутри дерева
+# печатает 6.3.3 даже когда активирован 8.9.0.
+#
+# Сам модуль здесь не собирается: приложения живут в apps/*, пакеты — в
+# packages/*. Эта точка входа ничего не публикует и служит только тем, что
+# привязывает melos к воркспейсу.
+name: meander_workspace
+description: Melos workspace root for the Meander monorepo (apps/ + packages/).
+publish_to: none
+
+environment:
+  sdk: ^3.9.2
+
+dev_dependencies:
+  # Мажор 6 — последний, кто читает melos.yaml. Переезд на 7/8 = pub-workspace
+  # миграция (melos.yaml удаляется, `run:` скриптов переезжает в `exec.command:`,
+  # `resolution: workspace` в каждый пакетный pubspec), а не смена цифры здесь.
+  melos: ^6.3.3

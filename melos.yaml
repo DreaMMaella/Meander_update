@@ -1,0 +1,84 @@
+name: meander_workspace
+
+repository: https://github.com/IILLUMINATION/meander-public
+
+packages:
+  - apps/*
+  - packages/*
+
+command:
+  bootstrap:
+    runPubGetInParallel: false
+    environment:
+      sdk: ^3.9.2
+      flutter: ">=3.24.0"
+
+scripts:
+  analyze:
+    description: Run `dart analyze` in all packages
+    run: melos exec -c 1 -- "dart analyze ."
+    packageFilters:
+      flutter: false
+  analyze:flutter:
+    description: Run `flutter analyze` in all Flutter packages
+    run: melos exec -c 1 -- "flutter analyze ."
+    packageFilters:
+      flutter: true
+  test:
+    description: Run unit tests in all packages
+    run: melos exec -c 1 --fail-fast -- "dart test"
+    packageFilters:
+      flutter: false
+      dirExists: test
+  test:flutter:
+    description: Run unit tests in all Flutter packages
+    run: melos exec -c 1 --fail-fast -- "flutter test"
+    packageFilters:
+      flutter: true
+      dirExists: test
+  format:
+    description: Format Dart sources across the workspace
+    run: melos exec -c 1 -- "dart format ."
+  format:check:
+    description: Verify formatting is clean
+    run: melos exec -c 1 -- "dart format --output=none --set-exit-if-changed ."
+  fix:
+    description: Apply `dart fix --apply` everywhere
+    run: melos exec -c 1 -- "dart fix --apply"
+  clean:
+    description: Clean all Flutter packages
+    run: melos exec -c 1 -- "flutter clean"
+    packageFilters:
+      flutter: true
+  pub:get:
+    description: Run `flutter pub get` / `dart pub get` in all packages
+    run: melos exec -c 1 -- "flutter pub get || dart pub get"
+  core:test:
+    description: Run unit tests for mnd_core
+    # mnd_core зависит от flutter sdk, package:test там нет — `dart test`
+    # падает с «Could not find package `test`», нужен flutter_test.
+    run: melos exec -c 1 -- "flutter test"
+    packageFilters:
+      scope: mnd_core
+  ffi:build:
+    description: Build mnd-ffi (.so) and regenerate FRB bindings
+    run: |
+      ./scripts/setup_ffi_link.sh
+      ./scripts/build_ffi.sh
+  ffi:build:apple:
+    description: Build mnd-ffi frameworks for macOS/iOS (Apple Silicon)
+    run: ./scripts/build_ffi_apple.sh --all
+  ffi:build:macos:
+    description: Build mnd-ffi framework for macOS (Apple Silicon)
+    run: ./scripts/build_ffi_apple.sh --macos
+  ffi:build:ios:
+    description: Build mnd-ffi framework for iOS device (arm64)
+    run: ./scripts/build_ffi_apple.sh --ios
+  ffi:build:ios-sim:
+    description: Build mnd-ffi framework for iOS Simulator (arm64)
+    run: ./scripts/build_ffi_apple.sh --ios-sim
+  core:analyze:
+    description: Analyze mnd_core
+    run: melos exec -c 1 -- "dart analyze"
+    packageFilters:
+      scope: mnd_core
