@@ -1,0 +1,30 @@
+{
+  "input": {
+    "blocks": [
+      {
+        "type": "future_thing",
+        "id": "x1",
+        "custom": {
+          "a": [
+            1,
+            2
+          ]
+        }
+      }
+    ]
+  },
+  "canonical": {
+    "blocks": [
+      {
+        "type": "future_thing",
+        "id": "x1",
+        "custom": {
+          "a": [
+            1,
+            2
+          ]
+        }
+      }
+    ]
+  }
+}

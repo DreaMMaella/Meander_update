@@ -1,0 +1,26 @@
+[workspace]
+resolver = "3"
+members = [
+    "crates/mnd-cli",
+    "crates/mnd-core",
+    "crates/mnd-plugin",
+    "crates/mnd-ffi",
+    "crates/mnd-server",
+    "crates/mnd-tui",
+]
+
+[workspace.package]
+version = "0.3.32"
+edition = "2024"
+license = "AGPL-3.0-or-later"
+authors = ["Illuminat"]
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+thiserror = "2"
+
+[profile.release]
+lto = true
+strip = true
+codegen-units = 1

@@ -1,0 +1,58 @@
+[package]
+name = "mnd-core"
+description = "Meander quest engine: models, script executor, runtime state, saves. Pure Rust, no I/O."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+uuid = { version = "1", features = ["v4"] }
+libc = { version = "0.2", optional = true }
+sha1 = "0.10"
+mlua = { version = "0.12.0", features = ["lua54", "vendored", "send"], optional = true }
+full_moon = { version = "2.2", features = ["lua54"] }
+ureq = { version = "2", optional = true }
+url = "2"
+zip = { version = "2", default-features = false, features = ["deflate"] }
+walkdir = "2"
+aes = "0.8"
+cbc = { version = "0.1", features = ["alloc"] }
+pbkdf2 = "0.12"
+hmac = "0.12"
+sha2 = "0.10"
+argon2 = "0.5"
+chacha20poly1305 = "0.10"
+rand = "0.8"
+hex = "0.4"
+image = { version = "0.25", default-features = false, features = ["png"], optional = true }
+webp = { version = "0.3", default-features = false, optional = true }
+
+# Веб-сборка (wasm32-unknown-unknown): getrandom берёт энтропию у JS,
+# а часы — `Date.now()` (см. src/time.rs: `SystemTime::now()` на этом таргете
+# паникует). На нативных таргетах cargo эту секцию игнорирует.
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.2", features = ["js"] }
+js-sys = "0.3"
+uuid = { version = "1", features = ["v4", "js"] }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+# Каждую опцию включает нативная сборка; веб собирается с
+# `--no-default-features` и получает заглушки с теми же сигнатурами.
+# Публичный API от этого не
+# меняется — иначе frb_generated.sql-ветки разошлись бы с нативными.
+[features]
+default = ["lua-scripting", "image-convert", "http-request", "posix-locale"]
+# mlua (C, vendored) — блок `call_lua`.
+lua-scripting = ["dep:mlua"]
+# image + libwebp (C) — конвертация ресурсов в WebP на стороне редактора.
+image-convert = ["dep:image", "dep:webp"]
+# ureq/rustls (ring — asm) — блок `http_request`.
+http-request = ["dep:ureq"]
+# libc::setlocale — только для mpv на десктопе.
+posix-locale = ["dep:libc"]

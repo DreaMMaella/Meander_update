@@ -1,0 +1,6 @@
+# flutter_rust_bridge.yaml — mnd-rs FFI bridge configuration
+rust_input: crate::api
+rust_root: crates/mnd-ffi
+dart_output: packages/mnd_core/lib/src/gen
+c_output: packages/mnd_core/lib/src/gen/frb_generated.h
+dart_format_line_length: 120

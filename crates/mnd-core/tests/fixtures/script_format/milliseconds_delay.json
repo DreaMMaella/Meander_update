@@ -1,0 +1,21 @@
+{
+  "input": {
+    "blocks": [
+      {
+        "type": "задержка",
+        "id": "d1",
+        "milliseconds": 1500
+      }
+    ]
+  },
+  "canonical": {
+    "blocks": [
+      {
+        "type": "wait",
+        "id": "d1",
+        "milliseconds": 1500,
+        "expression": "1500"
+      }
+    ]
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "input": {
+    "name": "Скрипт 2",
+    "blocks": [
+      {
+        "type": "event",
+        "id": "578cc2ae",
+        "eventType": "onNodeEnter",
+        "children": [
+          {
+            "type": "while",
+            "id": "3d38b77f",
+            "count": "3",
+            "children": [
+              {
+                "type": "assign_variable",
+                "id": "b531a8d9",
+                "variable": "тест",
+                "value": "{тест}+1"
+              }
+            ],
+            "collapsed": false,
+            "max_iterations": 10000
+          }
+        ],
+        "collapsed": false
+      }
+    ]
+  },
+  "canonical": {
+    "name": "Скрипт 2",
+    "blocks": [
+      {
+        "type": "event",
+        "id": "578cc2ae",
+        "eventType": "onNodeEnter",
+        "children": [
+          {
+            "type": "while",
+            "id": "3d38b77f",
+            "count": "3",
+            "children": [
+              {
+                "type": "assign_variable",
+                "id": "b531a8d9",
+                "variable": "тест",
+                "value": "{тест}+1"
+              }
+            ],
+            "collapsed": false,
+            "max_iterations": 10000
+          }
+        ],
+        "collapsed": false
+      }
+    ]
+  }
+}

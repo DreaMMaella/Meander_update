@@ -1,0 +1,22 @@
+{
+  "input": {
+    "blocks": [
+      {
+        "title": "При запуске квеста",
+        "id": "e1",
+        "children": []
+      }
+    ]
+  },
+  "canonical": {
+    "blocks": [
+      {
+        "type": "event",
+        "eventType": "onQuestStart",
+        "title": "При запуске квеста",
+        "id": "e1",
+        "children": []
+      }
+    ]
+  }
+}

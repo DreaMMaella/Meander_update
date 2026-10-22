@@ -1,0 +1,10 @@
+[package]
+name = "mnd-server"
+description = "Meander backend: axum + sqlx + socketioxide (replaces Node backend)."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+mnd-core = { path = "../mnd-core" }

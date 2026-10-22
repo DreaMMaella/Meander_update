@@ -1,0 +1,26 @@
+[package]
+name = "mnd-plugin"
+description = "Meander plugin host (L3B): manifest, policy, sandboxed Lua runtime, event hooks."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+mlua = { version = "0.12.0", features = ["lua54", "vendored", "send"], optional = true }
+# default-features = false обязательно: иначе включение lua-runtime у этого
+# крейта тянет mlua во всю графу зависимостей, и веб-сборка перестает
+# собираться даже с --no-default-features у mnd-ffi.
+mnd-core = { path = "../mnd-core", default-features = false }
+
+[dev-dependencies]
+serde_json = { workspace = true }
+
+[features]
+default = ["lua-runtime"]
+# Хост плагинов — это Lua; в wasm он не поднимается, поэтому веб собирают
+# без этой фичи.
+lua-runtime = ["dep:mlua", "mnd-core/lua-scripting"]

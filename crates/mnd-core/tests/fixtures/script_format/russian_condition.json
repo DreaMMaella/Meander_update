@@ -1,0 +1,41 @@
+{
+  "input": {
+    "blocks": [
+      {
+        "type": "условие",
+        "id": "c1",
+        "variable": "HP",
+        "comparison": ">=",
+        "значение": "10",
+        "если_да": [
+          {
+            "type": "изменить_переменную",
+            "variable": "флаг",
+            "value": "1"
+          }
+        ],
+        "если_нет": []
+      }
+    ]
+  },
+  "canonical": {
+    "blocks": [
+      {
+        "type": "condition",
+        "id": "c1",
+        "variable": "HP",
+        "comparison": ">=",
+        "значение": "10",
+        "expression": "{HP} >= 10",
+        "then_blocks": [
+          {
+            "type": "assign_variable",
+            "variable": "флаг",
+            "value": "1"
+          }
+        ],
+        "else_blocks": []
+      }
+    ]
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "input": {
+    "blocks": [
+      {
+        "title": "При запуске ноды",
+        "id": "e1",
+        "children": []
+      }
+    ]
+  },
+  "canonical": {
+    "blocks": [
+      {
+        "type": "event",
+        "eventType": "onNodeEnter",
+        "title": "При запуске ноды",
+        "id": "e1",
+        "children": []
+      }
+    ]
+  }
+}
