@@ -1,0 +1,59 @@
+name: Build Windows Release
+
+on:
+  # Только вручную: релизная сборка не запускается на каждый пуш.
+  workflow_dispatch:
+
+concurrency:
+  group: build-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: "3.47.0"
+
+jobs:
+  build-windows-release:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build mnd-ffi (native Rust core)
+        run: cargo build --release -p mnd-ffi
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Enable Windows desktop
+        run: flutter config --enable-windows-desktop
+
+      - name: Install dependencies
+        working-directory: apps/main_app
+        run: flutter pub get
+
+      - name: Build Windows release
+        working-directory: apps/main_app
+        run: flutter build windows --release
+
+      - name: Copy mnd_ffi.dll next to executable
+        shell: bash
+        run: cp target/release/mnd_ffi.dll apps/main_app/build/windows/x64/runner/Release/
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          # 7 дней: релиз собирается вечером, артефакт нужен и после
+          # разборов упавшего билда.
+          retention-days: 7
+          name: canvas_app-windows-x64
+          path: apps/main_app/build/windows/x64/runner/Release

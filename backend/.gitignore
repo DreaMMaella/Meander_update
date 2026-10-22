@@ -1,0 +1,37 @@
+# Dependencies and build output
+node_modules/
+dist/
+
+# Runtime uploads and generated storage
+public/uploads/*
+public/quests_files/*
+public/quests/*
+storage/
+temp_uploads/
+migration_data/
+
+# Keep folder structure in the repository
+!public/uploads/.gitkeep
+!public/quests_files/.gitkeep
+!public/quests/.gitkeep
+
+# Local database exports and backups
+*.dump
+*.dump.*
+*.backup
+*.bak
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+*firebase-adminsdk*.json
+firebase-service-account*.json
+*.pem
+
+# Temporary/generated source snapshots
+all_files.txt
+*.orig
+*.patch
+*.rej
+*.log

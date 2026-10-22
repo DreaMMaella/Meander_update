@@ -1,0 +1,174 @@
+name: Build macOS Release
+
+# Зачем: macOS-сборку нельзя сделать ни на Linux, ни на Windows — нужен
+# Xcode и CocoaPods на apple-раннере. До этого `Release.Macos.zip` собирался
+# только руками на Маке, из-за чего провал (отсутствующий Podfile, кривой
+# framework-путь) становился виден лишь в момент релиза.
+#
+# Запуск: только workflow_dispatch из интерфейса — вручную, не на пуш/тег.
+# По push на main тут ничего нет: macOS-раннер в 10 раз дороже Linux-ного по
+# минутам, а пользы от сборки на каждый коммит нет — Dart/Rust-проверки
+# живут в ci-dart.yml и ci-rust.yml.
+#
+# Чего этот билд НЕ даёт: нормальную подпись и notarization. В проекте
+# стоит CODE_SIGN_IDENTITY = "-" (ad-hoc), поэтому приложение запускается
+# на том же Mac, но скачанный из релиза файл macOS встретит сообщение про
+# неизвестного разработчика: нужно «Открыть» через правый клик или снять
+# quarantine (`xattr -cr`). Полноценная дистрибуция требует Apple
+# Developer ID + notarytool.
+
+on:
+  # Только вручную: релизная сборка не запускается на пуш/тег.
+  workflow_dispatch:
+
+concurrency:
+  group: build-macos-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: "3.47.0"
+
+jobs:
+  build-macos-release:
+    # macos-26, а не 14: connectivity_plus 7.3.1 в macOS-исходнике трогает
+    # NWPath.isUltraConstrained, которого нет до macOS 26 SDK. На macos-14
+    # самый новый Xcode — 15.4 (16.2 в наборе), и xcodebuild падает на чужом
+    # под-пакете. Guard `#available(macOS 26…)` не спасает: метод должен быть
+    # объявлен в SDK. Лейбл именно `macos-26`: суффикс `-arm64` — имя папки в
+    # runner-images, а не валидный runs-on, с ним job вечно висит в «queued».
+    runs-on: macos-26
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # SDK решает исходник: без этой строки провал выглядит как «код не
+      # компилируется», хотя на деле раннер взял старый Xcode.
+      - name: Версия Xcode
+        run: xcodebuild -version
+
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin
+
+      - name: Cache Rust artifacts
+        uses: Swatinem/rust-cache@v2
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Enable macOS desktop
+        run: flutter config --enable-macos-desktop
+
+      # SPM во Flutter включён по умолчанию, но ни ios/, ни macos/ его не
+      # используют: оба проекта обвешаны CocoaPods (firebase_core,
+      # media_kit_libs_macos_video). На чистом раннере tool всё равно пытается
+      # подготовить исходники плагина и падает на `rsync: mkdir
+      # build/ios/SourcePackages/... No such file or directory` ещё до сборки.
+      - name: Отключить Swift Package Manager
+        run: flutter config --no-enable-swift-package-manager
+
+      - name: Install dependencies
+        working-directory: apps/main_app
+        run: flutter pub get
+
+      # FRB-мост Flutter не собирает: без этого шага линковка
+      # падает на «framework not found libmnd_ffi», а если оставить старый
+      # framework из репозитория — приложение крашится на старте.
+      - name: Build mnd-ffi (macOS dylib → framework)
+        run: ./scripts/build_ffi_apple.sh --macos
+
+      # Кэш поднимаем ДО pod install: ~/.cocoapods с прошлого раннера лежит
+      # свежий, а specs-репозиторий в нём — нет (run 38619190104: «CocoaPods's
+      # specs repository is too out-of-date to satisfy dependencies»). Поэтому
+      # install идёт с --repo-update: залетевший не обновлённый specs лечится
+      # сам, ~40 c вместо падения всей сборки.
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: |
+            apps/main_app/macos/Pods
+            ~/.cocoapods
+          key: macos-pods-${{ hashFiles('apps/main_app/macos/Podfile', 'apps/main_app/pubspec.lock') }}
+          restore-keys: macos-pods-
+
+      # Podfile есть, а Podfile.lock в репозитории нет — значит pod install
+      # здесь ещё ни разу не бегал. Падаем на первом же pod-плагине сразу,
+      # а не после десяти минут xcodebuild.
+      - name: CocoaPods resolve
+        working-directory: apps/main_app
+        run: |
+          # cdn.jsdelivr.net с раннеров отвечает честно: «Error in the HTTP2
+          # framing layer» на середине загрузки podspec'а (run 38622515699).
+          # Это сеть до CDN, а не наша поломка, поэтому повторяем до трёх раз —
+          # вторая попытка обычно уже с прогретым кэшем.
+          for i in 1 2 3; do
+            if pod install --repo-update --project-directory=macos; then
+              exit 0
+            fi
+            echo "!! pod install не прошёлся, попытка $i из 3"
+            sleep 20
+          done
+          exit 1
+
+      - name: Проверка целостности framework
+        working-directory: apps/main_app
+        run: |
+          bin="macos/Runner/Frameworks/libmnd_ffi.framework/libmnd_ffi"
+          test -s "$bin" || { echo "!! $bin пуст или отсутствует"; exit 1; }
+          file "$bin" | grep -qi "dynamically linked shared library" || {
+            echo "!! $bin — не Mach-O dylib: Xcode не сможет его слинковать"
+            exit 1
+          }
+          strings "$bin" | grep -q "mnd-core v" || {
+            echo "!! в библиотеке нет строки версии mnd-core — это stale-артефакт"
+            exit 1
+          }
+          nm -gU "$bin" 2>/dev/null | grep -q frb_ || {
+            echo "!! нет экспортированных символов flutter_rust_bridge"
+            exit 1
+          }
+
+      - name: Cache CocoaPods
+        uses: actions/cache@v4
+        with:
+          path: |
+            apps/main_app/macos/Pods
+            ~/.cocoapods
+          key: macos-pods-${{ hashFiles('apps/main_app/macos/Podfile', 'apps/main_app/pubspec.lock') }}
+          restore-keys: macos-pods-
+
+      - name: Build macOS release
+        working-directory: apps/main_app
+        run: flutter build macos --release
+
+      - name: Проверка собранного приложения
+        working-directory: apps/main_app
+        run: |
+          app="build/macos/Build/Products/Release/canvas_app.app"
+          test -d "$app" || { echo "!! $app не найден"; exit 1; }
+          # Ядро должно оказаться внутри бандла: FRB грузит его по @rpath,
+          # без Contents/Frameworks/libmnd_ffi.framework приложение падает
+          # сразу после запуска.
+          test -s "$app/Contents/Frameworks/libmnd_ffi.framework/libmnd_ffi" || {
+            echo "!! libmnd_ffi.framework не вшит в бандл"
+            exit 1
+          }
+
+      # ditto, а не zip: сохраняет права, симлинки и подпись бандла.
+      - name: Упаковать в Release.Macos.zip
+        working-directory: apps/main_app
+        run: ditto -c -k --keepParent build/macos/Build/Products/Release/canvas_app.app "$RUNNER_TEMP/Release.Macos.zip"
+
+      - name: Upload macOS artifact
+        uses: actions/upload-artifact@v4
+        with:
+          # 7 дней, а не 1: артефакт нужен после разборов упавшего билда,
+          # когда релиз собирается в тот же вечер.
+          retention-days: 7
+          name: canvas_app-macos-arm64
+          path: ${{ runner.temp }}/Release.Macos.zip

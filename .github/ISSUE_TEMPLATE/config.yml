@@ -1,0 +1,9 @@
+# https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/configuring-issue-templates-for-your-repository#configuring-the-template-chooser
+blank_issues_enabled: true
+contact_links:
+  - name: Уязвимость — приватный advisory
+    url: https://github.com/IILLUMINATION/meander-public/security/advisories/new
+    about: Не заводите публичный issue про дыру; порядок описан в README, раздел Security.
+  - name: Скачать готовое приложение
+    url: https://meander.sbs
+    about: Сборки для Android, Windows, macOS и Linux, если собирать из исходников не хочется.

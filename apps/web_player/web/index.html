@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="Meander — прохождение текстовых квестов прямо в браузере: движок считается в WebAssembly, архив квеста остаётся на вашей стороне.">
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Meander">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>Meander — квест в браузере</title>
+  <link rel="manifest" href="manifest.json">
+  <style>
+    html, body { margin: 0; background: #0b0d10; }
+    #boot-error {
+      position: fixed; inset: 0; display: none; place-items: center;
+      padding: 24px; color: #fff; background: #0b0d10;
+      font: 14px/1.5 system-ui, sans-serif; text-align: center;
+    }
+    #boot-error code { color: #92ff26; word-break: break-all; }
+  </style>
+  <script>
+    // Движок живёт в wasm и требует разделение памяти: страницу must отдавать
+    // заголовки COOP/COEP, иначе SharedArrayBuffer нет и FRB поднимет
+    // однопоточный fallback. Если этого не случилось — честная надпись,
+    // а не бесконечный белый экран.
+    window.addEventListener('error', function (event) {
+      if (window.flutterCanvasKit || document.querySelector('flt-glass-pane')) return;
+      var box = document.getElementById('boot-error');
+      box.style.display = 'grid';
+      box.innerHTML =
+        '<div>Веб-плеер не запустился: <code>' +
+        (event.message || 'неизвестная ошибка') +
+        '</code><br>Страница должна отдаваться по HTTPS с заголовками ' +
+        'Cross-Origin-Opener-Policy: same-origin и ' +
+        'Cross-Origin-Embedder-Policy: require-corp.</div>';
+    });
+  </script>
+</head>
+<body>
+  <div id="boot-error"></div>
+  <script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

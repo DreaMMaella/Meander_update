@@ -1,0 +1,69 @@
+# Кандидат в рецепт fdroiddata (в их репозитории это data/com.IILLUMINAT.meadner.yml).
+# Лежит здесь как заготовка: подаётся он в https://gitlab.com/fdroid/fdroiddata,
+# и там его проверяет и правит тот, кто добавляет пакет. Поля, помеченные
+# «сверить», без реального прогоного билда не подтверждены.
+Categories:
+  - Games
+  - Writing
+License: AGPL-3.0-or-later
+WebURL: https://meander.sbs
+SourceCode: https://github.com/IILLUMINATION/meander-public
+IssueTracker: https://github.com/IILLUMINATION/meander-public/issues
+
+AutoName: false
+Name: Meander
+Summary: Движок и редактор текстовых квестов
+Description: |
+  Meander — свободный движок интерактивных историй: игрок проходит квесты,
+  автор их делает без программирования.
+
+  <ul>
+  <li>Плеер: ветвящиеся сцены, переменные, инвентарь, таблицы, условные
+  переходы, скрипты на Lua.</li>
+  <li>Редактор: граф нод, канвас со слоями, визуальные блоки скриптов,
+  формулы, библиотека ресурсов.</li>
+  <li>Сообщество: каталог квестов, форумы, личные сообщения, публикации.</li>
+  <li>Офлайн: квест — файл на устройстве, проходит без сети; аккаунт нужен
+  только для облачной синхронизации и публикаций.</li>
+  <li>Платформы: Android, iOS, Linux, Windows, macOS.</li>
+  </ul>
+
+RepoSource: git https://github.com/IILLUMINATION/meander-public
+RepoTracks:
+  - versionNameTemplate: '*.*.*'
+RepoAllowPatches: false
+
+# Сверить перед подачей: commit должен быть тегом сборки, output — фактическим
+# путём APK, а версии Flutter/Rust — тем, что есть в сборочном контейнере
+# F-Droid (https://gitlab.com/fdroid/fdroidserver/-/blob/master/docker/Dockerfile).
+Builds:
+  - versionName: 2.8.15
+    versionCode: 260
+    commit: 2.8.15
+    subdirectory: apps/main_app
+    # Проверено локальным прогоном 2026-10-20 с чистого публичного дерева:
+    # 21 мин, на выходе app-prod-release-unsigned.apk (78.8 МБ), внутри
+    # lib/<abi>/libmnd_ffi.so со строкой mnd-core v0.3.32 — той же, что в
+    # [workspace.package]. Подписи нет намеренно: подписывает F-Droid.
+    # Инструменты прогона: Flutter 3.47.7 (stable), rustc 1.98.0, JDK 17.0.20,
+    # Android NDK 28.2.13676358 — сверить с образом fdroidserver.
+    output: build/app/outputs/apk/prod/release/app-prod-release-unsigned.apk
+    build:
+      - rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android i686-linux-android
+      - cargo install --locked cargo-ndk
+      - flutter pub get
+      - flutter build apk --flavor prod --release
+
+# Декларация как есть: основной репозиторий F-Droid с таким набором пакет не
+# возьмёт (несвободные зависимости и реклама). Нужен flavour без них — это
+# открытая задача, а не готовое решение.
+AntiFeatures:
+  Ads: https://yandex.ru/dev/mobile/
+  Tracking: https://yandex.ru/dev/mobile/
+  NonFreeDep:
+    google-play-services: https://developers.google.com/android/guides/overview
+    firebase-cloud-messaging: https://firebase.google.com/docs/cloud-messaging
+  NonFreeNet:
+    meander-community: https://meander.sbs
+
+RequiresInternetPermission: true
