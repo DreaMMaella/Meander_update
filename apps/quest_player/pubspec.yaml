@@ -1,0 +1,38 @@
+name: quest_player
+description: >-
+  Standalone-плеер Meander: один .mnd-квест, упакованный в отдельный APK.
+  Собирается скриптом scripts/build_quest_apk.sh или workflow
+  «Build Quest APK».
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+  flutter: '>=3.24.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  mnd_core:
+    path: ../../packages/mnd_core
+  mnd_player:
+    path: ../../packages/mnd_player
+  flutter_riverpod: ^2.6.1
+  flutter_rust_bridge: 2.12.0
+  archive: ^4.0.7
+  collection: ^1.18.0
+  crypto: ^3.0.7
+  path: ^1.8.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  # Сюда сборщик кладёт quest.mnd (файл в .gitignore).
+  assets:
+    - assets/quest/

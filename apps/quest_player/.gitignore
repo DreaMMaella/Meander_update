@@ -1,0 +1,9 @@
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+pubspec.lock
+
+# Квест и иконка подкладываются сборщиком на время сборки.
+assets/quest/*
+!assets/quest/.gitkeep
