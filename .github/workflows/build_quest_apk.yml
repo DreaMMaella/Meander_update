@@ -1,0 +1,190 @@
+name: Build Quest APK
+run-name: ${{ inputs.request_id && format('quest-apk {0}', inputs.request_id) || format('Build Quest APK ({0})', github.event_name) }}
+
+# Сборщик квестов: превращает один .mnd в отдельное Android-приложение
+# на основе плеера (apps/quest_player). Способы запуска:
+#   1. Веб-страница сборщика (apps/builder_web) — кнопка «Собрать APK».
+#   2. Actions → Build Quest APK → Run workflow.
+#   3. Положить .mnd в папку quests/ и запушить — APK соберётся сам.
+on:
+  push:
+    paths:
+      - 'quests/*.mnd'
+      - 'apps/quest_player/**'
+      - 'packages/mnd_player/**'
+      - 'scripts/build_quest_apk.sh'
+      - '.github/workflows/build_quest_apk.yml'
+  workflow_dispatch:
+    inputs:
+      request_id:
+        description: 'Служебный ID запроса (заполняет веб-сборщик)'
+        required: false
+        default: ''
+      quest_path:
+        description: 'Путь к .mnd в репозитории (например quests/my_quest.mnd)'
+        required: false
+        default: ''
+      quest_url:
+        description: 'Или прямая ссылка на .mnd'
+        required: false
+        default: ''
+      quest_blob_sha:
+        description: 'Или SHA git-блоба с .mnd (заполняет веб-сборщик)'
+        required: false
+        default: ''
+      app_name:
+        description: 'Название приложения (пусто — имя файла квеста)'
+        required: false
+        default: ''
+      app_id:
+        description: 'Package name (com.example.myquest); пусто — из названия'
+        required: false
+        default: ''
+      version:
+        description: 'Версия (versionName)'
+        required: false
+        default: '1.0.0'
+      build_number:
+        description: 'Номер сборки (versionCode)'
+        required: false
+        default: '1'
+      icon_path:
+        description: 'Путь к PNG-иконке в репозитории (необязательно)'
+        required: false
+        default: ''
+      abi:
+        description: 'Архитектура'
+        type: choice
+        options: [all, arm64, arm, x64]
+        default: arm64
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-quest-apk-${{ inputs.request_id || github.run_id }}
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: "3.47.0"
+  NDK_VERSION: "28.2.13676358"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+
+      - name: Fetch quest
+        env:
+          QUEST_PATH: ${{ inputs.quest_path }}
+          QUEST_URL: ${{ inputs.quest_url }}
+          QUEST_BLOB_SHA: ${{ inputs.quest_blob_sha }}
+          APP_NAME: ${{ inputs.app_name }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/quest"
+          if [ "$GITHUB_EVENT_NAME" = "push" ]; then
+            # Последний добавленный/изменённый .mnd в quests/.
+            QUEST_PATH="$(git diff --name-only --diff-filter=AM HEAD~1 HEAD -- 'quests/*.mnd' 2>/dev/null | head -n1 || true)"
+            [ -n "$QUEST_PATH" ] || QUEST_PATH="$(ls quests/*.mnd 2>/dev/null | head -n1 || true)"
+          fi
+          if [ -n "$QUEST_BLOB_SHA" ]; then
+            gh api -H "Accept: application/vnd.github.raw" \
+              "repos/$GITHUB_REPOSITORY/git/blobs/$QUEST_BLOB_SHA" > "$RUNNER_TEMP/quest/quest.mnd"
+            source_name="quest.mnd"
+          elif [ -n "$QUEST_URL" ]; then
+            curl -fsSL --retry 3 "$QUEST_URL" -o "$RUNNER_TEMP/quest/quest.mnd"
+            source_name="$(basename "${QUEST_URL%%\?*}")"
+          elif [ -n "$QUEST_PATH" ] && [ -f "$QUEST_PATH" ]; then
+            cp "$QUEST_PATH" "$RUNNER_TEMP/quest/quest.mnd"
+            source_name="$(basename "$QUEST_PATH")"
+          else
+            echo "::error::Укажи quest_path (файл в репозитории) или quest_url"
+            exit 1
+          fi
+          if [ -z "$APP_NAME" ]; then
+            APP_NAME="${source_name%.*}"
+          fi
+          echo "QUEST_APP_NAME=$APP_NAME" >> "$GITHUB_ENV"
+          echo "Квест: $source_name ($(stat -c%s "$RUNNER_TEMP/quest/quest.mnd") байт), название: $APP_NAME"
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android NDK
+        run: |
+          sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          ndk_dir="$ANDROID_HOME/ndk/${NDK_VERSION}"
+          # Загрузка NDK с серверов Google иногда обрывается — повторяем.
+          for attempt in 1 2 3; do
+            if [ -f "$ndk_dir/source.properties" ]; then break; fi
+            echo "Установка NDK, попытка $attempt"
+            rm -rf "$ndk_dir"
+            (yes || true) | "$sdkmanager" "ndk;${NDK_VERSION}" > /dev/null || sleep 15
+          done
+          if [ ! -f "$ndk_dir/source.properties" ]; then
+            echo "::error::Не удалось установить Android NDK ${NDK_VERSION}"
+            exit 1
+          fi
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/${NDK_VERSION}" >> "$GITHUB_ENV"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk --locked
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Configure signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.QUEST_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.QUEST_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.QUEST_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.QUEST_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "Секретов подписи нет — APK будет подписан debug-ключом."
+            exit 0
+          fi
+          dir=apps/quest_player/android
+          echo "$KEYSTORE_BASE64" | base64 -d > "$dir/release.jks"
+          {
+            echo "storeFile=release.jks"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > "$dir/key.properties"
+
+      - name: Build APK
+        env:
+          APP_ID: ${{ inputs.app_id }}
+          APP_VERSION: ${{ inputs.version || '1.0.0' }}
+          BUILD_NUMBER: ${{ inputs.build_number || '1' }}
+          ICON_PATH: ${{ inputs.icon_path }}
+          ABI: ${{ inputs.abi || 'arm64' }}
+        run: |
+          args=(--name "$QUEST_APP_NAME" --version "$APP_VERSION" --build-number "$BUILD_NUMBER" --abi "$ABI" --out dist)
+          [ -n "$APP_ID" ] && args+=(--id "$APP_ID")
+          [ -n "$ICON_PATH" ] && args+=(--icon "$ICON_PATH")
+          bash ./scripts/build_quest_apk.sh "$RUNNER_TEMP/quest/quest.mnd" "${args[@]}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: quest-apk
+          path: dist/*.apk
+          if-no-files-found: error
+          retention-days: 14

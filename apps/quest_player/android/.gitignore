@@ -1,0 +1,16 @@
+# Обёртка gradle коммитится: без gradlew/gradle-wrapper.jar клон собирается
+# только через `flutter build`, а любая прямая команда ./gradlew умирает.
+/.gradle
+/captures/
+/local.properties
+GeneratedPluginRegistrant.java
+.cxx/
+
+# Remember to never publicly share your keystore.
+# See https://flutter.dev/to/reference-keystore
+key.properties
+**/*.keystore
+**/*.jks
+
+# Ядро и подпись порождает сборщик.
+/app/src/main/jniLibs/

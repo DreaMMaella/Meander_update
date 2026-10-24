@@ -1,0 +1,144 @@
+name: Build Android APK
+
+# Полное приложение Meander (apps/main_app): редактор + плеер + каталог.
+# Без секретов подписи APK подписывается debug-ключом — для тестов на устройстве.
+on:
+  push:
+    paths:
+      - 'apps/main_app/**'
+      - 'apps/quest_player/**'
+      - 'scripts/build_quest_apk.sh'
+      - 'packages/**'
+      - 'crates/mnd-core/**'
+      - 'crates/mnd-ffi/**'
+      - '.github/workflows/build_android.yml'
+  workflow_dispatch:
+    inputs:
+      flavor:
+        description: 'Flavor'
+        type: choice
+        options: [prod, dev]
+        default: prod
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-android-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  FLUTTER_VERSION: "3.47.0"
+  NDK_VERSION: "28.2.13676358"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/node_modules /opt/ghc /usr/local/.ghcup \
+            /opt/hostedtoolcache/CodeQL /usr/local/share/powershell /usr/share/swift || true
+          sudo docker image prune --all --force > /dev/null 2>&1 || true
+          df -h /
+
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install Android NDK
+        run: |
+          sdkmanager="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          ndk_dir="$ANDROID_HOME/ndk/${NDK_VERSION}"
+          for attempt in 1 2 3; do
+            if [ -f "$ndk_dir/source.properties" ]; then break; fi
+            echo "Установка NDK, попытка $attempt"
+            rm -rf "$ndk_dir"
+            (yes || true) | "$sdkmanager" "ndk;${NDK_VERSION}" > /dev/null || sleep 15
+          done
+          if [ ! -f "$ndk_dir/source.properties" ]; then
+            echo "::error::Не удалось установить Android NDK ${NDK_VERSION}"
+            exit 1
+          fi
+          echo "ANDROID_NDK_HOME=$ndk_dir" >> "$GITHUB_ENV"
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-linux-android
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Install cargo-ndk
+        run: cargo install cargo-ndk --locked
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Configure signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "Секретов подписи нет — APK будет подписан debug-ключом."
+            exit 0
+          fi
+          dir=apps/main_app/android
+          echo "$KEYSTORE_BASE64" | base64 -d > "$dir/release.jks"
+          {
+            echo "storeFile=../release.jks"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > "$dir/key.properties"
+
+      # Шаблон плеера для офлайн-сборки APK квестов на устройстве:
+      # приложение подменяет в нём quest.mnd и переподписывает.
+      - name: Build quest player template
+        run: |
+          ./scripts/build_quest_apk.sh quests/demo.mnd \
+            --name "Meander Quest" \
+            --id sbs.meander.quest.player \
+            --abi arm64 \
+            --out "$RUNNER_TEMP/player"
+          assets=apps/main_app/android/app/src/main/assets
+          mkdir -p "$assets"
+          cp "$RUNNER_TEMP/player/sbs.meander.quest.player-1.0.0.apk" \
+            "$assets/quest_player_template.apk"
+          ls -la "$assets"
+          rm -rf apps/quest_player/build
+
+      - name: Build APK
+        working-directory: apps/main_app
+        env:
+          # На push собираем оба: dev (пакет ...meadner.dev) ставится рядом с prod без конфликта.
+          FLAVORS: ${{ inputs.flavor || 'prod dev' }}
+        run: |
+          flutter pub get
+          mkdir -p "$GITHUB_WORKSPACE/dist"
+          version="$(grep -E '^version:' pubspec.yaml | awk '{print $2}' | cut -d+ -f1)"
+          for FLAVOR in $FLAVORS; do
+            flutter build apk --release --flavor "$FLAVOR" \
+              --target-platform android-arm64 \
+              --android-project-arg=debugSignRelease=true \
+              --android-project-arg=ffiAbis=arm64-v8a
+            cp "build/app/outputs/flutter-apk/app-$FLAVOR-release.apk" \
+              "$GITHUB_WORKSPACE/dist/meander-$version-$FLAVOR-arm64.apk"
+          done
+          ls -la "$GITHUB_WORKSPACE/dist"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: meander-android
+          path: dist/*.apk
+          if-no-files-found: error
+          retention-days: 14
