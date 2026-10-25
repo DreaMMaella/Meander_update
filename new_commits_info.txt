@@ -1,0 +1,19 @@
+﻿2ed2f66ae52584b83a1556d52acf146522ddfcc0
+╨Ш╨╗╨╗╤О╨╝╨╕╨╜╨░╤В <IILLUMINAT@outlook.com>
+╨Ш╨╗╨╗╤О╨╝╨╕╨╜╨░╤В <IILLUMINAT@outlook.com>
+Merge pull request #1 from DreaMMaella/feature/iillumination-updates
+feat: ╨┤╨╛╨▒╨░╨▓╨╗╨╡╨╜╤Л ╨╜╨╛╨▓╤Л╨╡ ╤Д╤Г╨╜╨║╤Ж╨╕╨╕ ╨╛╤В IILLUMINATION
+
+---
+20c8fbc526e40d6fbd6c3ab02d5d3ee848365403
+DreaMMaella <273341448+DreaMMaella@users.noreply.github.com>
+DreaMMaella <273341448+DreaMMaella@users.noreply.github.com>
+feat: ╨┤╨╛╨▒╨░╨▓╨╗╨╡╨╜╤Л ╨╜╨╛╨▓╤Л╨╡ ╤Д╤Г╨╜╨║╤Ж╨╕╨╕ ╨╛╤В IILLUMINATION
+- apps/builder_web: ╨▓╨╡╨▒-╨╕╨╜╤В╨╡╤А╤Д╨╡╨╣╤Б ╨┤╨╗╤П ╤Б╨▒╨╛╤А╨║╨╕ APK
+- apps/quest_player: ╨╛╤В╨┤╨╡╨╗╤М╨╜╨╛╨╡ ╨┐╤А╨╕╨╗╨╛╨╢╨╡╨╜╨╕╨╡-╨┐╨╗╨╡╨╡╤А ╨┤╨╗╤П ╨║╨▓╨╡╤Б╤В╨╛╨▓
+- apps/main_app: offline APK builder, display refresh rate, ╤Г╨╗╤Г╤З╤И╨╡╨╜╨╜╨░╤П ╨┐╨╛╨┤╨┤╨╡╤А╨╢╨║╨░ Android
+- .github/workflows: CI ╨┤╨╗╤П ╤Б╨▒╨╛╤А╨║╨╕ Android ╨╕ Quest APK
+- scripts/build_quest_apk.sh: ╤Б╨║╤А╨╕╨┐╤В ╨░╨▓╤В╨╛╨╝╨░╤В╨╕╤З╨╡╤Б╨║╨╛╨╣ ╤Б╨▒╨╛╤А╨║╨╕ ╨║╨▓╨╡╤Б╤В APK
+- quests/demo.mnd: ╨┤╨╡╨╝╨╛-╨║╨▓╨╡╤Б╤В ╨┤╨╗╤П ╤В╨╡╤Б╤В╨╕╤А╨╛╨▓╨░╨╜╨╕╤П
+
+---
